@@ -1,0 +1,10 @@
+<!DOCTYPE web-app PUBLIC
+ "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+ "http://java.sun.com/dtd/web-app_2_3.dtd" >
+
+<web-app id="WebApp_1527043856901">
+  <display-name>demo</display-name>
+  <listener> 
+ 		<listener-class>com.ly.util.TestLog</listener-class>
+	</listener>
+</web-app>

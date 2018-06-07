@@ -1,0 +1,207 @@
+<!DOCTYPE HTML>
+<HTML>
+<head>
+	 <meta charset="UTF-8" />
+	 <style>
+	    table{
+			margin:0 auto;
+			width:200px;
+			border:1px solid black;
+		}
+		table button{
+			width:100%;
+			height:40px;
+		}
+		table td{
+			width:25%;
+		}
+		table td .selectbtn{
+		   background:blue;
+		   color:white;
+		}
+	 </style>
+	<script type="text/javascript" src="../js/db.js"></script>
+</head>
+<body >
+   <div align="center">成语消消乐</div>
+   <div align="center">
+	当前第<font color="green" id="current_level_text">1</font>关&nbsp;
+    得分<font id="gain_scores_txt" color="green">0</font>分&nbsp;
+	思考<font id="think_time" color="red">0</font>s&nbsp;
+	总耗时<font id="total_times" color="blue">0</font>s&nbsp;
+   </div>
+   <table  border='0' cellpadding='0' cellspacing='0'>
+	 <tbody id="mytbody">
+	 </tbody>
+   </table>
+<script>
+	window.onload=function(){
+		var XXL={
+			dom:{
+				level:document.getElementById("current_level_text"),
+				scores:document.getElementById("gain_scores_txt"),
+				think_time:document.getElementById("think_time"),
+				total_times:document.getElementById("total_times"),
+				tbody:document.getElementById("mytbody")
+			},
+			dbs:listWords,//从外部js中加载。
+			chooseData:[],//记录从数据库从取出的成语。
+			recordChooseText:"",//记录用户选择的文字。
+			recordChooseBtn:[],//记录用户选择的按钮的jq对象。
+			current_index:0,//当前关数。 不可调。
+			every_words:6,//每一关的成语个数。可调。
+			every_right_num:0,//当前关答对的成语个数。 不可调。
+			current_words:0,//当前关的成语个数。 ，不可调。
+			last_time:Date.now(),//最后一次答题时间。
+			gain_scores:0,//得分。不可调。
+			every_scores:5,//每题得分。可调。
+			//从成语库中选取成语。
+			initWords:function(){
+					var dbtxt = "";
+					var start =  this.current_index * this.every_words;
+					var end = start + this.every_words  <= this.dbs.length ? start + this.every_words : this.dbs.length; 
+					//此段是后来完善的。
+					this.current_words = end - start;
+					if( this.current_words <=0 ){
+					   end = 0;
+					   this.current_words = 0;
+					}
+					//
+					for(var i=start;i<end;i++){
+						dbtxt +=this.dbs[i];
+						this.chooseData.push(this.dbs[i]);
+					}
+					return dbtxt;//返回乱序前的拼接字符串。
+					
+			},
+			luanxu:function(dbtxt){
+					var luanxu=[];
+					while(dbtxt.length>0){
+						var index = parseInt(Math.random()*dbtxt.length);
+						luanxu.push(dbtxt.charAt(index));
+						dbtxt = dbtxt.substring(0,index)+dbtxt.substring(index+1,dbtxt.length);
+					}	
+				return luanxu;//返回乱序后的字符。
+			},
+			createTable:function(words){
+				var len = 0;
+				var tbody = document.getElementById("mytbody");
+				tbody.innerHTML="";//清空tbody。
+				var tbodyhtml = "";
+				for(var i=0;i<XXL.current_words; i++){
+					var tr = "<tr>";
+					for(var j=0;j<4;j++){
+						var td = "<td>" ;
+								td+=("<button type='button'>"+words[len++]+"</button>");
+						    td+="</td>";
+						tr+=td; 
+					}
+					tr+="</tr>";
+					tbodyhtml+=tr;
+				}
+				tbody.innerHTML = tbodyhtml;
+			},
+			removeBtn:function(){
+				for(var i=0;i<XXL.recordChooseBtn.length;i++){
+					XXL.recordChooseBtn[i].remove();
+				}
+			},
+			//下一关。
+			nextLevel:function(){
+			   //答对成语个数和当前关的成语个数相等。则下一关。
+			   if(this.every_right_num == this.current_words){
+				  //下一关。
+				   this.current_index ++;
+			       alert("恭喜您进入第"+ (this.current_index+1) +"关");
+				  //清空当前答对成语个数。
+				   this.every_right_num = 0;
+				   //1重新初始化表格。
+				   this.init();
+				  
+				    this.dom.level.innerText = this.current_index+1;
+				   //判断终极结束。
+				   if(this.current_words <= 0){
+					  alert("您已经是这个宇宙最厉害的人了。");
+					  //重新加载网页。
+					  window.location.reload();
+				   } 
+			   }
+			},
+			//检测得分。
+			check:function(){
+				//如果点击的按钮个数少于4。直接退出函数。
+				if(this.recordChooseBtn.length <4)return;
+				//判断选择的成语，是否能够组成一个四字成语。
+				var find = false;//是否匹配标志位。
+				for(var i=0;i<this.chooseData.length;i++){
+					if(this.recordChooseText == this.chooseData[i]){
+						find = true;
+						break;
+					}
+				}
+				//如果能匹配上。
+				if(find){
+					//答对成语个数 ++。
+					this.every_right_num ++;
+				   //界面中消去成语。
+				   this.removeBtn();
+				   //判断是否需要跳转下一关。
+				   this.nextLevel();
+				   //更新答题时间。
+				   this.last_time = Date.now();
+				   //更新得分。
+				   this.gain_scores += this.every_scores;
+				   //
+				   this.dom.scores.innerText = this.gain_scores;
+				} 
+				//还原按钮样式。
+				document.querySelectorAll(".selectbtn").forEach(function(btn){
+					btn.className="";
+				});
+				 //清空按钮数组。
+				 this.recordChooseBtn=[];
+				 //清空选中的成语字符串
+				 this.recordChooseText = "";
+			},
+			init:function(){
+				//1 从成语库中选出当前关的成语。
+				var worstxt = this.initWords();
+				//2 准备乱序成语。
+				var dbs = this.luanxu( worstxt );
+				//3 准备好界面。
+				this.createTable(dbs);
+			},
+			bindEvent:function(){
+				var _this = this;
+				//对tbody进行点击事件的绑定。利用事件的冒泡。
+				//当点击子元素时，tbody事件函数能够进行响应。
+				this.dom.tbody.onclick = function(e){
+				var btn = e.target;//dom对象。
+				   if( btn.type =="button"){
+				       _this.recordChooseText += btn.innerText;
+					   _this.recordChooseBtn.push( btn );
+					   //添加一个class属性，控制选中样式。
+					   btn.className="selectbtn";
+					   //检测得分。
+					   _this.check();
+				   }
+			   }
+			},
+			executeTask:function(){
+				//定时1s执行一次。
+				setInterval(function(){
+					//思考时间
+					XXL.dom.think_time.innerText = parseInt((Date.now()-XXL.last_time)/1000);
+					 
+					//总时间
+					XXL.dom.total_times.innerText = parseInt( XXL.dom.total_times.innerText )+1;
+				},1000);
+			}
+		};
+		XXL.init();
+		XXL.bindEvent();
+		XXL.executeTask();
+	};
+</script>
+</body>
+</HTML>
